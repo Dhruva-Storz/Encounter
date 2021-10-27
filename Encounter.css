@@ -137,8 +137,26 @@ a, button, input, select {
 	position: absolute;
 	bottom: 0px;
     right: 0px;
-	width: 100%;
+	width: 50%;
     text-align: right;
+	padding: 10px;
+	box-sizing: border-box;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	z-index: 2; /* TODO Solve this in HTML */
+}
+
+#source {
+    color: #ff0;
+	text-decoration: underline;
+    position: absolute;
+	bottom: 0px;
+    left: 0px;
+	width: 50%;
+    text-align: left;
 	padding: 10px;
 	box-sizing: border-box;
 	-moz-user-select: none;
