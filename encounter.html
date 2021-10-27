@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Encounter</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="./Encounter.css">
+		<script src="https://kit.fontawesome.com/628c379d03.js" crossorigin="anonymous"></script>	</head>
+	<body>
+		<div id="overlay">
+			<h1 id="title">ENCOUNTER</h1>
+			<p id="subtitle">a positional audio experience</p>
+
+			<div id="audio-recommended">
+				<i class="fas fa-headphones"></i>
+				Headphones recommended
+			</div>
+
+			<button id="startButton">Play</button>
+		</div>
+		<div id="info">
+			An experiment in three.js with positional audio for the <a href="https://www.theisro.org/soundchains" target="_blank" rel="noopener">ISRO SOUNDCHAINS 01 artist exchange</a><br/>
+			Ambient audio by <a href="https://freesound.org/people/Yoyodaman234/sounds/335891/" target="_blank" rel="noopener">Yoyodaman234</a>,
+			Animal sounds by <a href="https://freesound.org/people/InspectorJ/sounds/469312/" target="_blank" rel="noopener">InspectorJ</a>, model by <a href="https://sketchfab.com/3d-models/daily-doodle-horned-creature-649f13fb643b41e6b6db86b73cbaf388" target="_blank" rel="noopener">Chaitanya Krishnan</a><br/>
+		</div>
+		<div id="credits"> By Dhruva Gowda Storz </div>
+		<div id="Intro">
+			WHERE AM I? </br>
+			W, A, S, D TO MOVE.
+		</div>
+		<div id="Outro">
+			YOU FOUND ME
+		</div>
+		<div id="Reload">
+			NOW, BE BORN ANEW.
+		</div>
+        <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+		<script type="module">
+
+			import * as THREE from 'https://cdn.skypack.dev/three/build/three.module.js';
+
+			import { FirstPersonControls } from 'https://cdn.skypack.dev/three/examples/jsm/controls/FirstPersonControls.js';
+
+			import { VRButton } from 'https://cdn.skypack.dev/three/examples/jsm/webxr/VRButton.js';
+
+			import { GLTFLoader } from 'https://cdn.skypack.dev/three/examples/jsm/loaders/GLTFLoader.js';
+
+			let camera, controls, scene, renderer, light;
+
+			let model, model_x, model_z, model_angle;
+
+			const clock = new THREE.Clock();
+
+			const startButton = document.getElementById( 'startButton' );
+			startButton.addEventListener( 'click', init );
+
+			function init() {
+
+				// Remove start button overlay and info text when start is clicked. 
+
+				const overlay = document.getElementById( 'overlay' );
+				const info = document.getElementById('info');
+				overlay.remove();
+				info.remove();
+				
+				// Show Intro Text
+
+				$("#Intro").fadeIn(3000, function(){
+					$("#Intro").delay(2000).fadeOut(3000); 
+				})
+
+				// setup scenes and lights
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0xffffff );
+				scene.fog = new THREE.FogExp2( 0xffffff, 0.3 );
+
+				light = new THREE.DirectionalLight( 0xffffff, 1);
+				light.position.set( 0, 0.5, 0.5 ).normalize();
+				scene.add( light );
+
+				// ground grid
+
+				const helper = new THREE.GridHelper( 1000, 1000, 0x444444, 0x444444 );
+				helper.position.y = 0;
+				scene.add( helper );
+
+
+
+				// Setup camera
+
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.set( 0, 1, 0);
+
+				// Setup audio listener and link it to the camera
+				const listener = new THREE.AudioListener();
+				camera.add( listener );
+
+				// Setup audio of animal
+
+				const sound1 = new THREE.PositionalAudio( listener );
+				const audioLoader = new THREE.AudioLoader();
+				audioLoader.load( 'sounds/exotic_creature.wav', function( buffer ) {
+					sound1.setBuffer( buffer );
+					sound1.setLoop(true);
+					sound1.setVolume(2);
+					sound1.setRefDistance(1);
+					sound1.play();
+				});
+				
+				// Setup global ambient audio
+
+				const sound2 = new THREE.Audio( listener );
+				audioLoader.load( 'sounds/bamboo.mp3', function( buffer ) {
+					sound2.setBuffer( buffer );
+					sound2.setLoop(true);
+					sound2.setVolume( 0.1 );
+					sound2.play();
+				});
+
+				// Import model
+
+				const loader = new GLTFLoader();
+
+				// Randomize model location (within 50 m), but make it always face towards origin
+
+				model_x = (Math.random() * (60 - 20 + 1)) + 20;
+				model_z = (Math.random() * (60 - 20 + 1)) + 20;     
+
+				loader.load( './models/daily_doodle_horned_creature/scene.gltf', function ( gltf ) {
+					model = gltf.scene;
+					model.position.y = 1.25;
+					model.position.z = model_z;
+					model.position.x = model_x;
+					model.lookAt(0,0,0);
+					model.scale.x = model.scale.y = model.scale.z = 0.3;
+					model.add( sound1 );
+
+					scene.add(model);
+
+				}, undefined, function ( error ) {
+					console.error( error );
+				} );				
+
+				
+				//renderer
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				// VR button
+
+				document.body.appendChild( VRButton.createButton( renderer ) );
+				renderer.xr.enabled = true;
+
+				// Movement controls in browser
+
+				controls = new FirstPersonControls( camera, renderer.domElement );
+
+				controls.movementSpeed = 4;
+				controls.lookSpeed = 0.05;
+				controls.noFly = true;
+				controls.lookVertical = false; // setting to true makes you fly when looking up. Need gravity and collision stuff to prevent this. 
+
+				// Standard code to resize window 
+
+				window.addEventListener( 'resize', onWindowResize );
+
+				// Main rendering animation loop.
+
+				renderer.setAnimationLoop( function () {
+
+					render( scene, camera );
+
+				} );
+			}
+
+			function render() {
+
+				const delta = clock.getDelta();
+
+				controls.update( delta );
+
+
+				const x_distance = Math.abs(camera.position.x - model_x);
+				const z_distance = Math.abs(camera.position.z - model_z);
+
+				// Console log for debugging
+				console.log(precise(camera.position.x), precise(camera.position.z), precise(model_x), precise(model_z), precise(x_distance), precise(z_distance));
+
+
+				// Game end condition
+				if ( x_distance < 5 && z_distance < 5) {
+					$("#Outro").fadeIn(3000, function(){
+						$("#Outro").delay(2000).fadeOut(3000, function(){
+							$("#Reload").fadeIn(3000, function(){
+								$("#Reload").delay(1000).fadeOut(3000, function(){
+									location.reload();
+								})
+							})
+
+						})
+					})
+				};
+
+
+
+
+				renderer.render( scene, camera );
+
+			}	
+
+			// Makes console logs prettier.
+			function precise(x) {
+				return Number.parseFloat(x).toPrecision(4);
+			}
+
+
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();				
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				controls.handleResize();
+
+			}
+
+
+		</script>
+
+	</body>
+</html>
